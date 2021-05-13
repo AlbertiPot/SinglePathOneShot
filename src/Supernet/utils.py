@@ -51,7 +51,7 @@ def accuracy(output, target, topk=(1,)):
     res = []
     for k in topk:
         correct_k = correct[:k].view(-1).float().sum(0)
-        res.append(correct_k.mul_(100.0 / batch_size))
+        res.append(correct_k.mul_(100.0 / batch_size))          # 返回的是top1,top5正确率的百分数
     return res
 
 
@@ -88,8 +88,6 @@ def get_parameters(model):
         else:
             # print('not include ', pname, p.size())
             group_no_weight_decay.append(p)
-    assert len(list(model.parameters())) == len(
-        group_weight_decay) + len(group_no_weight_decay)
-    groups = [dict(params=group_weight_decay), dict(
-        params=group_no_weight_decay, weight_decay=0.)]
+    assert len(list(model.parameters())) == len(group_weight_decay) + len(group_no_weight_decay)        # 判断有、无weight decay长度的各自长度相加是否为总参数长度
+    groups = [dict(params=group_weight_decay), dict(params=group_no_weight_decay, weight_decay=0.)]
     return groups

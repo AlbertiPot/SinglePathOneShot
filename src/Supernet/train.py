@@ -65,6 +65,7 @@ def get_args():
     parser.add_argument('--eval', default=False, action='store_true')
     parser.add_argument('--eval-resume', type=str, default='./snet_detnas.pkl', help='path for eval model')
     parser.add_argument('--batch-size', type=int, default=1024, help='batch size')
+    parser.add_argument('--val-batch-size', type=int, default=200, help='val batch size')
     parser.add_argument('--total-iters', type=int, default=150000, help='total iters')
     parser.add_argument('--learning-rate', type=float, default=0.5, help='init learning rate')
     parser.add_argument('--momentum', type=float, default=0.9, help='momentum')
@@ -92,7 +93,7 @@ def main():
         format=log_format, datefmt='%d %I:%M:%S')
     t = time.time()
     local_time = time.localtime(t)
-    if not os.path.exists('./log'):
+    if not os.path.exists('./log'):                                                                                         # log存储文件夹
         os.mkdir('./log')
     fh = logging.FileHandler(os.path.join('log/train-{}{:02}{}'.format(local_time.tm_year % 2000, local_time.tm_mon, t)))
     fh.setFormatter(logging.Formatter(log_format))
@@ -124,7 +125,7 @@ def main():
             transforms.CenterCrop(224),
             ToBGRTensor(),
         ])),
-        batch_size=200, shuffle=False,
+        batch_size=args.val_batch_size, shuffle=False,
         num_workers=1, pin_memory=use_gpu
     )
     val_dataprovider = DataIterator(val_loader)
@@ -136,6 +137,7 @@ def main():
                                 lr=args.learning_rate,
                                 momentum=args.momentum,
                                 weight_decay=args.weight_decay)
+    
     criterion_smooth = CrossEntropyLabelSmooth(1000, 0.1)
 
     if use_gpu:
@@ -159,7 +161,7 @@ def main():
             checkpoint = torch.load(lastest_model, map_location=None if use_gpu else 'cpu')
             model.load_state_dict(checkpoint['state_dict'], strict=True)
             print('load from checkpoint')
-            for i in range(iters):
+            for i in range(iters):                                                                                      # 将lr_scheduler自动走到中断的地方
                 scheduler.step()
 
     args.optimizer = optimizer
@@ -196,17 +198,16 @@ def train(model, device, args, *, val_interval, bn_process=False, all_iters=None
     Top1_err, Top5_err = 0.0, 0.0
     model.train()
     for iters in range(1, val_interval + 1):
-        scheduler.step()
         if bn_process:
             adjust_bn_momentum(model, iters)
 
         all_iters += 1
         d_st = time.time()
         data, target = train_dataprovider.next()
+        
         target = target.type(torch.LongTensor)
         data, target = data.to(device), target.to(device)
         data_time = time.time() - d_st
-
 
         get_random_cand = lambda:tuple(np.random.randint(4) for i in range(20))
         flops_l, flops_r, flops_step = 290, 360, 10
@@ -231,6 +232,7 @@ def train(model, device, args, *, val_interval, bn_process=False, all_iters=None
                 p.grad = None
 
         optimizer.step()
+        
         prec1, prec5 = accuracy(output, target, topk=(1, 5))
 
         Top1_err += 1 - prec1.item() / 100
@@ -249,6 +251,8 @@ def train(model, device, args, *, val_interval, bn_process=False, all_iters=None
             save_checkpoint({
                 'state_dict': model.state_dict(),
                 }, all_iters)
+        
+        scheduler.step()
 
     return all_iters
 
