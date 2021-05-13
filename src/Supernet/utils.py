@@ -50,7 +50,7 @@ def accuracy(output, target, topk=(1,)):
 
     res = []
     for k in topk:
-        correct_k = correct[:k].view(-1).float().sum(0)         # k=1时，取第一行batch个图每个图的top1预测结果，求和
+        correct_k = correct[:k].reshape(-1).float().sum(0)         # k=1时，取第一行batch个图每个图的top1预测结果，求和, reshape适用于不连续的tensor
         res.append(correct_k.mul_(100.0 / batch_size))          # 返回的是top1,top5正确率的百分数
     return res
 

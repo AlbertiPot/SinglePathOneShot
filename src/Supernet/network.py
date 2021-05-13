@@ -14,7 +14,7 @@ class ShuffleNetV2_OneShot(nn.Module):
         self.stage_out_channels = [-1, 16, 64, 160, 320, 640, 1024]
 
         # building first layer
-        input_channel = self.stage_out_channels[1]
+        input_channel = self.stage_out_channels[1]                                                          # CB的输入，1st 3×3 conv的输出 
         self.first_conv = nn.Sequential(
             nn.Conv2d(3, input_channel, 3, 2, 1, bias=False),
             nn.BatchNorm2d(input_channel, affine=False),
@@ -23,20 +23,20 @@ class ShuffleNetV2_OneShot(nn.Module):
 
         self.features = torch.nn.ModuleList()
         archIndex = 0
-        for idxstage in range(len(self.stage_repeats)):
-            numrepeat = self.stage_repeats[idxstage]
-            output_channel = self.stage_out_channels[idxstage + 2]
+        for idxstage in range(len(self.stage_repeats)):                                                     # 遍历4个choices的stage
+            numrepeat = self.stage_repeats[idxstage]                                                        # 每个stage的choices blocks的重复次数
+            output_channel = self.stage_out_channels[idxstage + 2]                                          # 第一个cb的输出是64
 
             for i in range(numrepeat):
                 if i == 0:
-                    inp, outp, stride = input_channel, output_channel, 2
+                    inp, outp, stride = input_channel, output_channel, 2                                    # 每个stage第一个stride为2
                 else:
-                    inp, outp, stride = input_channel // 2, output_channel, 1
+                    inp, outp, stride = input_channel // 2, output_channel, 1                               # 非第一层的其他channel逐渐减半
 
                 base_mid_channels = outp // 2
                 mid_channels = int(base_mid_channels)
                 archIndex += 1
-                self.features.append(torch.nn.ModuleList())
+                self.features.append(torch.nn.ModuleList())                                                 # modulelist嵌套modulelist：featursList: [[S3,S5,S7,Xception] * 20]
                 for blockIndex in range(4):
                     if blockIndex == 0:
                         print('Shuffle3x3')
@@ -58,20 +58,17 @@ class ShuffleNetV2_OneShot(nn.Module):
                         raise NotImplementedError
                 input_channel = output_channel
 
-        self.archLen = archIndex
+        self.archLen = archIndex                                                                            # 20个CB
         # self.features = nn.Sequential(*self.features)
 
         self.conv_last = nn.Sequential(
-            nn.Conv2d(
-                input_channel, self.stage_out_channels[
-                    -1], 1, 1, 0, bias=False),
+            nn.Conv2d(input_channel, self.stage_out_channels[-1], 1, 1, 0, bias=False),
             nn.BatchNorm2d(self.stage_out_channels[-1], affine=False),
             nn.ReLU(inplace=True),
         )
         self.globalpool = nn.AvgPool2d(7)
         self.dropout = nn.Dropout(0.1)
-        self.classifier = nn.Sequential(
-            nn.Linear(self.stage_out_channels[-1], n_class, bias=False))
+        self.classifier = nn.Sequential(nn.Linear(self.stage_out_channels[-1], n_class, bias=False))
         self._initialize_weights()
 
     def forward(self, x, architecture):
@@ -79,7 +76,8 @@ class ShuffleNetV2_OneShot(nn.Module):
 
         x = self.first_conv(x)
 
-        for archs, arch_id in zip(self.features, architecture):
+        # 设置运行时的单独路径
+        for archs, arch_id in zip(self.features, architecture):                                             # 根据传入的结构list（20个0-3的数代表每个CB的选择）
             x = archs[arch_id](x)
 
         x = self.conv_last(x)
