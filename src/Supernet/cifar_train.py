@@ -137,7 +137,7 @@ def main():
     val_dataprovider = DataIterator(val_loader)
     print('load data successfully')
 
-    model = ShuffleNetV2_OneShot()
+    model = ShuffleNetV2_OneShot(n_class=10)                                                                            # 对于cifar10,输出是10
 
     optimizer = torch.optim.SGD(get_parameters(model),
                                 lr=args.learning_rate,
@@ -214,20 +214,20 @@ def train(model, device, args, *, val_interval, bn_process=False, all_iters=None
         data, target = data.to(device), target.to(device)
         data_time = time.time() - d_st
         
-        get_random_cand = lambda:tuple(np.random.randint(4) for i in range(20))
+        get_random_cand = lambda:tuple(np.random.randint(4) for i in range(20))             # 匿名采样函数：生成20个4以下的整数，20是层，4是算子的类型
         flops_l, flops_r, flops_step = 290, 360, 10
-        bins = [[i, i+flops_step] for i in range(flops_l, flops_r, flops_step)]
+        bins = [[i, i+flops_step] for i in range(flops_l, flops_r, flops_step)]             # [[290, 300], [300, 310], [310, 320], [320, 330], [330, 340], [340, 350], [350, 360]]
 
         def get_uniform_sample_cand(*,timeout=500):
-            idx = np.random.randint(len(bins))
-            l, r = bins[idx]
+            idx = np.random.randint(len(bins))                                              # 随机生成bins的下标
+            l, r = bins[idx]                                                                # 提取某个bin的左右 flops界限
             for i in range(timeout):
                 cand = get_random_cand()
-                if l*1e6 <= get_cand_flops(cand) <= r*1e6:
+                if l*1e6 <= get_cand_flops(cand) <= r*1e6:                                  # 满足flops限制条件的，返回;    get_cand_flops计算仅骨干网的flops，不包括最后的GAP和全连接分类层
                     return cand
-            return get_random_cand()
+            return get_random_cand()                                                        # 若无满足的，直接返回新采样的随机数
 
-        output = model(data, get_uniform_sample_cand())
+        output = model(data, get_uniform_sample_cand())                                     # 根据采样的结果激活单通路模型计算
         loss = loss_function(output, target)
         optimizer.zero_grad()
         loss.backward()

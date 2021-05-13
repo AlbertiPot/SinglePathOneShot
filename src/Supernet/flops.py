@@ -289,7 +289,7 @@ def get_cand_flops(cand):
 
 op_flops_dict = pickle.load(open('./data/op_flops_dict.pkl', 'rb'))
 backbone_info = [  # inp, oup, img_h, img_w, stride
-    (3,     16,     224,    224,    2),  # conv1
+        (3,     16,     224,    224,    2),  # conv1
         (16,    64,     112,    112,    2),
         (64,    64,     56,     56,     1),
         (64,    64,     56,     56,     1),
@@ -324,10 +324,10 @@ def get_cand_flops(cand):
     conv1_flops = op_flops_dict['conv1'][(3, 16, 224, 224, 2)]
     rest_flops = op_flops_dict['rest_operation'][(640, 1000, 7, 7, 1)]
     total_flops = conv1_flops + rest_flops
-    for i in range(len(cand)):
-        op_ids = cand[i]
-        inp, oup, img_h, img_w, stride = backbone_info[i + 1]
-        key = blocks_keys[op_ids] + '_stride_' + str(stride)
+    for i in range(len(cand)):                                              # 遍历20个Choices Blocks, 每个CB的选择是根据cand这个随机生成的op id 序列
+        op_ids = cand[i]                                                    # 获取第i层的id
+        inp, oup, img_h, img_w, stride = backbone_info[i + 1]               # 获取backbone输入，输出，stride等信息
+        key = blocks_keys[op_ids] + '_stride_' + str(stride)                # 选择选用的op的类型，根据其所在层位置选择stride，生成名字，进入op_flops_dict查表
         mid = int(oup // 2)
         mid = int(mid)
         total_flops += op_flops_dict[key][
