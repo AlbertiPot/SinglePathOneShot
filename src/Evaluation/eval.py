@@ -6,8 +6,7 @@ from flops import get_cand_flops
 
 def main():
     info = torch.load('../Search/log/checkpoint.pth.tar')['vis_dict']
-    cands = sorted([cand for cand in info if 'err' in info[cand]],
-                   key=lambda cand: info[cand]['err'])[:1]
+    cands = sorted([cand for cand in info if 'err' in info[cand]], key=lambda cand: info[cand]['err'])[:1]  # 根据top1精度选择排序网络
 
     dst_dir = 'data'
     if not os.path.exists(dst_dir):
