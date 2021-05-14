@@ -51,7 +51,7 @@ class EvolutionSearcher(object):
         self.model = ShuffleNetV2_OneShot()
         self.model = torch.nn.DataParallel(self.model).cuda()
         supernet_state_dict = torch.load(
-            '../Supernet/models/checkpoint-latest.pth.tar')['state_dict']
+            '../Supernet/models/checkpoint-latest.pth.tar')['state_dict']                           # supernet读取路径
         self.model.load_state_dict(supernet_state_dict)
 
         self.log_dir = args.log_dir
@@ -124,7 +124,7 @@ class EvolutionSearcher(object):
 
     def stack_random_cand(self, random_func, *, batchsize=10):
         while True:
-            cands = [random_func() for _ in range(batchsize)]
+            cands = [random_func() for _ in range(batchsize)]                                                           # 生成10个候选模型: [[0,1,2,3]×20]×10
             for cand in cands:
                 if cand not in self.vis_dict:
                     self.vis_dict[cand] = {}
@@ -135,7 +135,7 @@ class EvolutionSearcher(object):
     def get_random(self, num):
         print('random select ........')
         cand_iter = self.stack_random_cand(
-            lambda: tuple(np.random.randint(self.nr_state) for i in range(self.nr_layer)))
+            lambda: tuple(np.random.randint(self.nr_state) for i in range(self.nr_layer)))                              # 共nr_layer个层，随机生成每层中0-3的层算子索引 [[0,1,2,3]×20]
         while len(self.candidates) < num:
             cand = next(cand_iter)
             if not self.is_legal(cand):
