@@ -50,7 +50,7 @@ def get_cand_err(model, cand, args):
     max_test_iters = args.max_test_iters
 
     print('clear bn statics....')
-    for m in model.modules():
+    for m in model.modules():                                                           # 清零BN参数
         if isinstance(m, torch.nn.BatchNorm2d):
             m.running_mean = torch.zeros_like(m.running_mean)
             m.running_var = torch.ones_like(m.running_var)
@@ -58,7 +58,7 @@ def get_cand_err(model, cand, args):
     print('train bn with training set (BN sanitize) ....')
     model.train()
 
-    for step in tqdm.tqdm(range(max_train_iters)):
+    for step in tqdm.tqdm(range(max_train_iters)):                                      # 计算BN层参数用
         # print('train step: {} total: {}'.format(step,max_train_iters))
         data, target = train_dataprovider.next()
         # print('get data',data.shape)
@@ -88,7 +88,7 @@ def get_cand_err(model, cand, args):
 
         logits = model(data, cand)
 
-        prec1, prec5 = accuracy(logits, target, topk=(1, 5))
+        prec1, prec5 = accuracy(logits, target, topk=(1, 5))                            # 计算测试集上的精度
 
         # print(prec1.item(),prec5.item())
 
