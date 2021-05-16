@@ -224,7 +224,7 @@ class EvolutionSearcher(object):
 
             self.candidates = mutation + crossover                                                                      # 子代更新list
 
-            #self.get_random(self.population_num)                                                                       # no side effect
+            self.get_random(self.population_num)                                                                        # 当某些请款下，种群数量小于50时，需要增加种群的数量
 
             self.epoch += 1
 
